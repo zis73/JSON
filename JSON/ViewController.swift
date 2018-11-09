@@ -10,11 +10,45 @@ import UIKit
 
 class ViewController: UIViewController {
 
+    @IBOutlet weak var imageView: UIImageView!
+    @IBOutlet weak var descriptionLabel: UILabel!
+    @IBOutlet weak var copyrightLabel: UILabel!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view, typically from a nib.
+        load { photoInfo in
+            self.updateUI(photoInfo: photoInfo)
+        }
+    }
+    
+    func updateUI(photoInfo: PhotoInfo){
+        DispatchQueue.main.async {
+            self.descriptionLabel.text = photoInfo.description
+            self.copyrightLabel.text = photoInfo.copyright
+        }
+        let url = photoInfo.url
+        let task = URLSession.shared.dataTask(with: url){
+            data, _, _ in
+            if let data = data, let image = UIImage(data: data){
+                DispatchQueue.main.async {
+                    self.imageView.image = image
+                }
+            }
+        }
+        task.resume()
     }
 
-
+    func load(completion: @escaping (PhotoInfo) -> Void){
+        let url = URL(string: "https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY")!
+        let task = URLSession.shared.dataTask(with: url) {data, _, _ in
+            let decoder = JSONDecoder()
+                if let data = data,
+                    let photoInfo = try? decoder.decode(PhotoInfo.self, from: data){
+                    
+                    completion(photoInfo)
+            }
+        }
+        task.resume()
+    }
 }
 
